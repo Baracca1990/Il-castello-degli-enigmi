@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Il Castello degli Enigmi</title>
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Nosifer&family=MedievalSharp&family=Cinzel:wght@600;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: #030108;
+      color: #e0d8f0;
+      font-family: 'MedievalSharp', cursive, serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    /* SFONDO STANZA CORRENTE */
+    .room-bg-container {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 2;
+      background-size: cover;
+      background-position: center;
+      transition: opacity 1.2s ease-in-out, background-color 0.5s;
+      opacity: 0;
+    }
+
+    /* SFONDO E NEBBIA GENERATA VIA CSS */
+    .fog-container {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      background: radial-gradient(circle at center, rgba(30, 0, 50, 0.4) 0%, rgba(3, 1, 8, 0.98) 90%);
+      overflow: hidden;
+    }
+
+    .fog {
+      position: absolute;
+      top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(circle, rgba(120, 50, 180, 0.08) 10%, transparent 60%);
+      animation: moveFog 20s ease-in-out infinite alternate;
+    }
+
+    @keyframes moveFog {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(-5%, -5%) scale(1.1); }
+    }
+
+    /* VIGNETTATURA E TORCIA */
+    .vignette {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      box-shadow: inset 0 0 150px rgba(0,0,0,0.95);
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .flashlight {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      pointer-events: none;
+      z-index: 4;
+      background: radial-gradient(circle 340px at var(--mouse-x, 50%) var(--mouse-y, 50%), transparent 0%, rgba(0, 0, 0, 0.88) 100%);
+    }
+
+    /* CONTENITORE PIPISTRELLI LOCALI */
+    #batContainer {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      pointer-events: none;
+      z-index: 25;
+      overflow: hidden;
+    }
+
+    .bat {
+      position: absolute;
+      width: 130px;
+      height: 130px;
+      background-image: url('img/bat.png');
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: contain;
+      opacity: 0;
+      filter: drop-shadow(0 0 12px rgba(157, 78, 221, 0.6));
+      transition: opacity 1.6s ease-in-out, transform 1.6s ease-in-out;
+    }
+
+    /* CONTENITORE PRINCIPALE APP (SENZA BORDO NÉ OMBRA VIOLA) */
+    #app {
+      position: relative;
+      z-index: 20;
+      width: 90%;
+      max-width: 850px;
+      margin: 20px auto;
+      padding: 30px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      text-align: center;
+      transition: opacity 0.6s ease;
+    }
+
+    #app.clean-mode {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      backdrop-filter: none;
+    }
+
+    h1.title {
+      font-family: 'Nosifer', cursive;
+      color: #ff3300;
+      text-shadow: 0 0 15px #ff0000, 3px 3px 0px #000;
+      font-size: 2.3rem;
+      margin-bottom: 25px;
+      letter-spacing: 2px;
+    }
+
+    h2.room-title {
+      font-family: 'Creepster', cursive;
+      color: #ff9e00;
+      font-size: 2rem;
+      text-shadow: 2px 2px 5px #000;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: #c77dff;
+      margin-bottom: 20px;
+      font-style: italic;
+      text-shadow: 1px 1px 3px #000;
+    }
+
+    /* BARRA CHIAVI IN MEMORIA */
+    .keys-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin: 15px 0 20px;
+      background: rgba(0,0,0,0.4);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #7b2cbf;
+    }
+
+    .key-box {
+      width: 46px;
+      height: 52px;
+      border: 2px solid #5a189a;
+      background: rgba(13, 0, 26, 0.5);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Cinzel', serif;
+      font-weight: bold;
+      color: #ff9e00;
+      font-size: 1.1rem;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.8);
+      position: relative;
+      transition: all 0.3s;
+    }
+
+    .key-box.filled {
+      border-color: #00ffcc;
+      color: #00ffcc;
+      box-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+    }
+
+    .key-box.wrong-blink {
+      border-color: #ff0000 !important;
+      color: #ff0000 !important;
+      cursor: pointer;
+      animation: blinkRed 0.6s infinite alternate;
+    }
+
+    .key-box.wrong-blink:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 20px #ff0000 !important;
+    }
+
+    @keyframes blinkRed {
+      0% { background: rgba(13, 0, 26, 0.5); box-shadow: 0 0 2px #ff0000; }
+      100% { background: rgba(80, 0, 0, 0.8); box-shadow: 0 0 15px #ff0000; }
+    }
+
+    .key-box-num {
+      font-size: 0.65rem;
+      color: #a0a0a0;
+      position: absolute;
+      top: 2px;
+    }
+
+    .key-box-val {
+      margin-top: 4px;
+    }
+
+    .edit-btn {
+      margin-top: 1px;
+      font-size: 0.6rem;
+      background: #ff0055;
+      color: #fff;
+      border: none;
+      padding: 2px 4px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .puzzle-card {
+      background: transparent;
+      border: none;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      box-shadow: none;
+      text-align: left;
+    }
+
+    .puzzle-text {
+      font-size: 1.2rem;
+      line-height: 1.6;
+      color: #ffffff;
+      text-shadow: 2px 2px 4px #000;
+      margin-bottom: 15px;
+    }
+
+    .puzzle-visual {
+      background: transparent;
+      border: none;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      color: #00ffcc;
+      font-size: 1.25rem;
+      white-space: pre-wrap;
+      text-shadow: 2px 2px 4px #000;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .opt-btn {
+      background: rgba(36, 0, 70, 0.65);
+      color: #e0aaff;
+      border: 2px solid #5a189a;
+      padding: 14px 20px;
+      font-size: 1.1rem;
+      font-family: 'MedievalSharp', cursive;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+      backdrop-filter: blur(3px);
+    }
+
+    .opt-btn:hover {
+      background: rgba(60, 9, 108, 0.85);
+      border-color: #ff9e00;
+      color: #fff;
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 0 15px rgba(255, 158, 0, 0.4);
+    }
+
+    .opt-badge {
+      background: #ff3300;
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-family: 'Cinzel', serif;
+      box-shadow: 0 0 8px #ff3300;
+      flex-shrink: 0;
+    }
+
+    .keypad-display {
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid #ff9e00;
+      color: #00ffcc;
+      font-family: 'Courier New', monospace;
+      font-size: 2.2rem;
+      letter-spacing: 12px;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px auto;
+      max-width: 420px;
+      min-height: 40px;
+      box-shadow: inset 0 0 15px rgba(255, 158, 0, 0.4);
+    }
+
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      max-width: 420px;
+      margin: 0 auto 20px;
+    }
+
+    .keypad-btn {
+      background: rgba(58, 12, 163, 0.75);
+      color: #fff;
+      border: 1px solid #7b2cbf;
+      font-family: 'Cinzel', serif;
+      font-size: 1.4rem;
+      font-weight: bold;
+      padding: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .keypad-btn:hover {
+      background: #ff9e00;
+      color: #000;
+      box-shadow: 0 0 10px #ff9e00;
+    }
+
+    .keypad-btn.clear {
+      grid-column: span 2;
+      background: rgba(157, 2, 8, 0.85);
+      font-size: 1rem;
+    }
+
+    .keypad-btn.submit {
+      grid-column: span 3;
+      background: rgba(56, 176, 0, 0.85);
+      font-size: 1rem;
+      color: #000;
+    }
+
+    .btn-main {
+      background: linear-gradient(145deg, #d00000, #9d0208);
+      color: #fff;
+      font-family: 'Nosifer', cursive;
+      font-size: 1.1rem;
+      padding: 15px 35px;
+      border: 2px solid #ffba08;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(208, 0, 0, 0.6);
+      transition: all 0.3s ease;
+      margin-top: 15px;
+    }
+
+    .btn-main:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 30px rgba(255, 186, 8, 0.8);
+      background: linear-gradient(145deg, #dc2f02, #e85d04);
+    }
+
+    .audio-controls {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      z-index: 50;
+      display: flex;
+      gap: 10px;
+    }
+
+    .icon-btn {
+      background: rgba(10, 5, 20, 0.85);
+      border: 2px solid #7b2cbf;
+      color: #ff9e00;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+      font-family: 'MedievalSharp', cursive;
+      box-shadow: 0 0 12px rgba(0,0,0,0.8);
+      transition: all 0.3s;
+    }
+
+    .icon-btn.active {
+      border-color: #00ffcc;
+      color: #00ffcc;
+      box-shadow: 0 0 15px #00ffcc;
+    }
+
+    .door-transition {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 100;
+      pointer-events: none;
+      display: flex;
+    }
+
+    .door-leaf {
+      width: 50%;
+      height: 100%;
+      background: #07020d;
+      border: 10px solid #1a002c;
+      box-sizing: border-box;
+      transition: transform 1.2s cubic-bezier(0.77, 0, 0.175, 1);
+    }
+
+    .door-left {
+      transform: translateX(-100%);
+      border-right: 5px solid #ff9e00;
+    }
+
+    .door-right {
+      transform: translateX(100%);
+      border-left: 5px solid #ff9e00;
+    }
+
+    .door-active .door-left { transform: translateX(0); }
+    .door-active .door-right { transform: translateX(0); }
+
+    .error-banner {
+      background: rgba(180, 0, 0, 0.45);
+      border: 2px solid #ff0000;
+      color: #ff9999;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-weight: bold;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    @media (max-width: 600px) {
+      h1.title { font-size: 1.5rem; }
+      h2.room-title { font-size: 1.4rem; }
+      #app { padding: 16px; width: 95%; }
+      .options-grid { grid-template-columns: 1fr; }
+      .keys-bar { gap: 4px; padding: 6px; }
+      .key-box { width: 34px; height: 44px; font-size: 0.95rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="room-bg-container" id="roomBg"></div>
+
+  <div class="fog-container">
+    <div class="fog"></div>
+  </div>
+  <div class="vignette"></div>
+  <div class="flashlight"></div>
+
+  <div id="batContainer"></div>
+
+  <div class="door-transition" id="doorOverlay">
+    <div class="door-leaf door-left"></div>
+    <div class="door-leaf door-right"></div>
+  </div>
+
+  <div class="audio-controls">
+    <button class="icon-btn active" id="toggleAudioBtn" onclick="toggleAudioMaster()">
+      <span id="audioIcon">🔊</span> <span id="audioText">Audio: ATTIVO</span>
+    </button>
+  </div>
+
+  <!-- ELEMENTI AUDIO LOCALI NASCOSTI -->
+  <audio id="audioBg" src="audio/sottofondo.mp3" loop preload="auto"></audio>
+  <audio id="audio1" src="audio/1.mp3" preload="auto"></audio>
+  <audio id="audio2" src="audio/2.mp3" preload="auto"></audio>
+  <audio id="audio3" src="audio/3.mp3" preload="auto"></audio>
+
+  <div id="app" class="clean-mode"></div>
+
+  <script>
+    const escapeData = {
+      introTitle: "IL CASTELLO DEGLI ENIGMI",
+      rooms: [
+        {
+          id: 1,
+          name: "Stanza 1: La Cripta dei Numeri Maledetti",
+          bgAmbient: "Un'oscura cripta infestata da ragnatele giganti e fiale alchemiche.",
+          roomImage: "img/Gemini_Generated_Image_y74orgy74orgy74o.jpg",
+          questionText: "2 - 4 - 7 - 11 - 16 - ...\nQuale numero devo mettere nella sequenza al posto dei tre puntini?",
+          visual: "2  -  4  -  7  -  11  -  16  -  ...",
+          options: [
+            { letter: "A", text: "19", val: "19" },
+            { letter: "B", text: "21", val: "21" },
+            { letter: "C", text: "20", val: "20" },
+            { letter: "D", text: "22", val: "22" },
+            { letter: "E", text: "24", val: "24" }
+          ],
+          correct: "D"
+        },
+        {
+          id: 2,
+          name: "Stanza 2: Il Laboratorio Alchemico",
+          bgAmbient: "Alambicchi ribollono di veleni verdi. Sul tavolo alchemico sono incisi cerchi magici.",
+          roomImage: "img/Gemini_Generated_Image_enpbh6enpbh6enpb.jpg",
+          questionText: "Inserisci nei cerchietti i numeri da 1 a 9 (una sola volta) in modo che i risultati delle moltiplicazioni siano veri:\n⭕ x ⭕ = 20\n⭕ x ⭕ x ⭕ = 16\n⭕ x ⭕ = 18\n⭕ x ⭕ = ?\nQuanto vale il punto interrogativo?",
+          visual: "⭕ × ⭕ = 20\n⭕ × ⭕ × ⭕ = 16\n⭕ × ⭕ = 18\n⭕ × ⭕ = ?",
+          options: [
+            { letter: "A", text: "49", val: "49" },
+            { letter: "B", text: "21", val: "21" },
+            { letter: "C", text: "63", val: "63" },
+            { letter: "D", text: "64", val: "64" },
+            { letter: "E", text: "35", val: "35" }
+          ],
+          correct: "C"
+        },
+        {
+          id: 3,
+          name: "Stanza 3: La Galleria degli Antinati",
+          bgAmbient: "Strumenti antichi e fiale oscure osservano ogni tuo singolo passo.",
+          roomImage: "img/Gemini_Generated_Image_kgvakbkgvakbkgva.jpg",
+          questionText: "Siamo nel 2022. La nonna di Miriam è nata nel 1942, sua figlia Giovanna ha la metà dei suoi anni. La figlia di Giovanna, Miriam, ha la metà della metà degli anni della mamma. Quanti anni ha Miriam?",
+          visual: "Anno: 2022\nNonna (1942) ➔ Giovanna (Metà età Nonna) ➔ Miriam (Metà della metà di Giovanna)",
+          options: [
+            { letter: "A", text: "20 anni", val: "20" },
+            { letter: "B", text: "40 anni", val: "40" },
+            { letter: "C", text: "80 anni", val: "80" },
+            { letter: "D", text: "10 anni", val: "10" },
+            { letter: "E", text: "15 anni", val: "15" }
+          ],
+          correct: "D"
+        },
+        {
+          id: 4,
+          name: "Stanza 4: La Prigione delle Decine Perdute",
+          bgAmbient: "Un pozzo maledetto e scaffali colmi di fiale mistiche sbarrano il cammino.",
+          roomImage: "img/Gemini_Generated_Image_xm2788xm2788xm27.jpg",
+          questionText: "Quante decine (raggruppamenti da dieci unità) ci sono nel numero 245?",
+          visual: "Numero da analizzare: [ 2 4 5 ]",
+          options: [
+            { letter: "A", text: "2", val: "2" },
+            { letter: "B", text: "4", val: "4" },
+            { letter: "C", text: "5", val: "5" },
+            { letter: "D", text: "24", val: "24" },
+            { letter: "E", text: "45", val: "45" }
+          ],
+          correct: "D"
+        },
+        {
+          id: 5,
+          name: "Stanza 5: La Torre delle Sottrattrici",
+          bgAmbient: "Un tavolo di tortura alchemica e ingranaggi arrugginiti sfidano la tua mente.",
+          roomImage: "img/Gemini_Generated_Image_47uxm547uxm547ux.jpg",
+          questionText: "Calcola il risultato di questa doppia sottrazione continua:\nUN CENTINAIO MENO DUE DECINE MENO TRE UNITÀ",
+          visual: "( 1 Centinaio ) − ( 2 Decine ) − ( 3 Unità ) = ?",
+          options: [
+            { letter: "A", text: "83", val: "83" },
+            { letter: "B", text: "77", val: "77" },
+            { letter: "C", text: "95", val: "95" },
+            { letter: "D", text: "50", val: "50" },
+            { letter: "E", text: "45", val: "45" }
+          ],
+          correct: "B"
+        },
+        {
+          id: 6,
+          name: "Stanza 6: Il Muro della Dannazione",
+          bgAmbient: "Pareti di pietra umida e catene secolari custodiscono il segreto del muro.",
+          roomImage: "img/Gemini_Generated_Image_pdxw7spdxw7spdxw.jpg",
+          questionText: "IL MURO DI MATTONI: Quale numero devi scrivere nel mattone vuoto in cima al muretto?",
+          visual: "      [ ? ]\n    [16] [24]\n   [6] [10] [14]\n  [2] [4]  [6]  [8]",
+          options: [
+            { letter: "A", text: "26", val: "26" },
+            { letter: "B", text: "32", val: "32" },
+            { letter: "C", text: "10", val: "10" },
+            { letter: "D", text: "34", val: "34" },
+            { letter: "E", text: "40", val: "40" }
+          ],
+          correct: "E"
+        },
+        {
+          id: 7,
+          name: "Stanza 7: L'Ultimo Sigillo della Strega",
+          bgAmbient: "Arazzi araldici e un'antica porta di legno conducono all'uscita finale.",
+          roomImage: "img/Gemini_Generated_Image_txtw31txtw31txtw.jpg",
+          questionText: "La strega prepara una pozione: raddoppia i rospi nella prima ora, aggiunge 6 rospi nella seconda e poi divide tutto a metà ottenendo 9 rospi. Quanti rospi aveva all'inizio?",
+          visual: "( ( Rospi x 2 ) + 6 ) : 2 = 9",
+          options: [
+            { letter: "A", text: "6", val: "6" },
+            { letter: "B", text: "7", val: "7" },
+            { letter: "C", text: "8", val: "8" },
+            { letter: "D", text: "5", val: "5" },
+            { letter: "E", text: "10", val: "10" }
+          ],
+          correct: "A"
+        }
+      ]
+    };
+
+    /* ======================================================
+       GESTIONE AUDIO LOCALI
+       ====================================================== */
+    let isAudioActive = true;
+    const audioBg = document.getElementById('audioBg');
+    const audio1 = document.getElementById('audio1');
+    const audio2 = document.getElementById('audio2');
+    const audio3 = document.getElementById('audio3');
+
+    function stopSpecialAudios() {
+      if (audio1) { audio1.pause(); audio1.currentTime = 0; }
+      if (audio2) { audio2.pause(); audio2.currentTime = 0; }
+      if (audio3) { audio3.pause(); audio3.currentTime = 0; }
+    }
+
+    function playAudioLocal(audioEl) {
+      if (!isAudioActive || !audioEl) return;
+      stopSpecialAudios();
+      audioEl.volume = 1.0;
+      audioEl.play().catch(e => console.log("Audio in attesa di interazione utente"));
+    }
+
+    function playBgAudio() {
+      if (isAudioActive && audioBg) {
+        audioBg.volume = 0.35;
+        audioBg.play().catch(() => {});
+      }
+    }
+
+    function toggleAudioMaster() {
+      const btn = document.getElementById('toggleAudioBtn');
+      const icon = document.getElementById('audioIcon');
+      const text = document.getElementById('audioText');
+
+      isAudioActive = !isAudioActive;
+
+      if (isAudioActive) {
+        btn.classList.add('active');
+        icon.innerText = "🔊";
+        text.innerText = "Audio: ATTIVO";
+        playBgAudio();
+      } else {
+        btn.classList.remove('active');
+        icon.innerText = "🔇";
+        text.innerText = "Audio: SPENTO";
+        audioBg.pause();
+        stopSpecialAudios();
+      }
+    }
+
+    /* ======================================================
+       PIPISTRELLI AD INTERMITTENZA SU TUTTE LE SCHERMATE
+       ====================================================== */
+    function spawnBat() {
+      const batContainer = document.getElementById('batContainer');
+      if (!batContainer) return;
+
+      const bat = document.createElement('div');
+      bat.className = 'bat';
+
+      const startX = Math.random() * (window.innerWidth - 140);
+      const startY = Math.random() * (window.innerHeight - 140);
+      const scale = 0.65 + Math.random() * 0.55;
+
+      bat.style.left = startX + 'px';
+      bat.style.top = startY + 'px';
+      bat.style.transform = `scale(${scale})`;
+
+      batContainer.appendChild(bat);
+
+      setTimeout(() => {
+        bat.style.opacity = '0.95';
+        bat.style.transform = `scale(${scale * 1.1}) translate(${(Math.random() - 0.5) * 60}px, ${(Math.random() - 0.5) * 60}px)`;
+      }, 100);
+
+      setTimeout(() => {
+        bat.style.opacity = '0';
+        setTimeout(() => {
+          bat.remove();
+        }, 1800);
+      }, 3200);
+    }
+
+    setInterval(() => {
+      if (Math.random() < 0.7) {
+        spawnBat();
+      }
+    }, 2800);
+
+    /* ======================================================
+       GESTIONE APPLICAZIONE
+       ====================================================== */
+    let userChoices = Array(escapeData.rooms.length).fill("_");
+    let wrongIndices = [];
+    let enteredCode = "";
+    let isKeySubmitted = false;
+    let fixingMode = false;
+    let currentRoomTimer = null;
+
+    const appEl = document.getElementById('app');
+    const doorOverlay = document.getElementById('doorOverlay');
+    const roomBgEl = document.getElementById('roomBg');
+
+    function generateKeysBarHTML() {
+      return `
+        <div class="keys-bar">
+          <span style="font-size:0.8rem; color:#c77dff; font-weight:bold; margin-right:4px;">LETTERE:</span>
+          ${userChoices.map((letter, idx) => {
+            const isFilled = letter !== '_';
+            const showWrong = isKeySubmitted && wrongIndices.includes(idx);
+            const clickAttr = showWrong ? `onclick="goToRoom(${idx})"` : '';
+            return `
+              <div class="key-box ${isFilled ? 'filled' : ''} ${showWrong ? 'wrong-blink' : ''}" ${clickAttr} title="${showWrong ? 'Clicca per correggere la risposta!' : ''}">
+                <span class="key-box-num">S${idx + 1}</span>
+                <span class="key-box-val">${letter}</span>
+                ${showWrong ? `<button class="edit-btn">FIX</button>` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    /* SCHERMATA INTRO */
+    function renderIntro() {
+      roomBgEl.style.backgroundImage = `url('img/Gemini_Generated_Image_a0ukjta0ukjta0uk.jpg')`;
+      roomBgEl.style.opacity = '1';
+      
+      appEl.classList.add('clean-mode');
+      appEl.style.display = 'block';
+      appEl.style.opacity = '1';
+
+      playAudioLocal(audio1);
+
+      appEl.innerHTML = `
+        <h1 class="title">${escapeData.introTitle}</h1>
+        <button class="btn-main" onclick="handleStartIntro()">ENTRA SE HAI CORAGGIO 🚪</button>
+      `;
+    }
+
+    function handleStartIntro() {
+      stopSpecialAudios();
+      playBgAudio();
+      startEscapeRoom();
+    }
+
+    function startEscapeRoom() {
+      appEl.classList.remove('clean-mode');
+      userChoices = Array(escapeData.rooms.length).fill("_");
+      wrongIndices = [];
+      isKeySubmitted = false;
+      fixingMode = false;
+      triggerDoorAnimation(() => {
+        startPreRoomView(0);
+      });
+    }
+
+    function goToRoom(index) {
+      appEl.classList.remove('clean-mode');
+      stopSpecialAudios();
+      playBgAudio();
+      triggerDoorAnimation(() => {
+        startPreRoomView(index);
+      });
+    }
+
+    function startPreRoomView(index) {
+      if (currentRoomTimer) clearTimeout(currentRoomTimer);
+      const room = escapeData.rooms[index];
+
+      appEl.style.opacity = '0';
+      setTimeout(() => { appEl.style.display = 'none'; }, 300);
+
+      roomBgEl.style.backgroundImage = `url('${room.roomImage}')`;
+      roomBgEl.style.opacity = '1';
+
+      currentRoomTimer = setTimeout(() => {
+        loadRoom(index);
+      }, 2800);
+    }
+
+    function loadRoom(index) {
+      const room = escapeData.rooms[index];
+      const showWrongText = isKeySubmitted && wrongIndices.includes(index);
+
+      appEl.style.display = 'block';
+      setTimeout(() => { appEl.style.opacity = '1'; }, 50);
+
+      appEl.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+          <span style="color:#ff9e00; font-weight:bold; text-shadow: 1px 1px 3px #000;">STANZA ${room.id} DI ${escapeData.rooms.length}</span>
+          ${showWrongText ? '<span style="color:#ff0000; font-weight:bold; animation:pulse 1s infinite; text-shadow: 1px 1px 3px #000;">⚠️ STANZA ERRATA! SELEZIONA LA NUOVA RISPOSTA!</span>' : ''}
+        </div>
+
+        ${generateKeysBarHTML()}
+
+        <h2 class="room-title">${room.name}</h2>
+        <div class="subtitle">${room.bgAmbient}</div>
+
+        <div class="puzzle-card">
+          <p class="puzzle-text" style="white-space: pre-line;">${room.questionText}</p>
+          ${room.visual ? `<div class="puzzle-visual">${room.visual}</div>` : ''}
+        </div>
+
+        <p style="margin-bottom:15px; font-weight:bold; color:#ff9e00; text-shadow: 1px 1px 3px #000;">Scegli la risposta per aprire la porta e memorizzare la lettera:</p>
+
+        <div class="options-grid">
+          ${room.options.map(opt => `
+            <button class="opt-btn" onclick="selectAnswerAndOpenDoor(${index}, '${opt.letter}')">
+              <span class="opt-badge">${opt.letter}</span>
+              <span>${opt.text}</span>
+            </button>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function selectAnswerAndOpenDoor(roomIndex, selectedLetter) {
+      userChoices[roomIndex] = selectedLetter;
+
+      if (wrongIndices.includes(roomIndex)) {
+        if (selectedLetter === escapeData.rooms[roomIndex].correct) {
+          wrongIndices = wrongIndices.filter(i => i !== roomIndex);
+        }
+      }
+
+      if (fixingMode) {
+        triggerDoorAnimation(() => {
+          renderFinalDoor();
+        });
+        return;
+      }
+
+      if (roomIndex + 1 < escapeData.rooms.length) {
+        if (roomIndex + 1 === 6) {
+          triggerDoorAnimation(() => {
+            renderTauntScreen();
+          });
+        } else {
+          triggerDoorAnimation(() => {
+            startPreRoomView(roomIndex + 1);
+          });
+        }
+      } else {
+        triggerDoorAnimation(() => {
+          renderFinalDoor();
+        });
+      }
+    }
+
+    /* SCHERMATA DERISIONE PRIMA DELLA STANZA 7 (RIPRODUCE L'AUDIO 2) */
+    function renderTauntScreen() {
+      if (currentRoomTimer) clearTimeout(currentRoomTimer);
+      
+      roomBgEl.style.backgroundImage = 'none';
+      roomBgEl.style.backgroundColor = '#100516';
+      roomBgEl.style.opacity = '0.7';
+      
+      appEl.style.display = 'block';
+      appEl.style.opacity = '1';
+      
+      playAudioLocal(audio2);
+
+      appEl.innerHTML = `
+        <h1 class="title" style="color:#ff3300; font-size: 1.9rem; font-family: 'Nosifer', cursive;">LA STREGA TI DERIDE...</h1>
+        
+        <div class="puzzle-card" style="text-align:center;">
+          <p class="puzzle-text" style="color:#fff;">"Pensavi davvero di poter fuggire così facilmente?"</p>
+        </div>
+
+        <button class="btn-main" onclick="stopSpecialAudios(); playBgAudio(); triggerDoorAnimation(() => { startPreRoomView(6); })">AFFRONTA L'ULTIMA STANZA 🚪</button>
+      `;
+    }
+
+    function renderFinalDoor(errorMessage = "") {
+      enteredCode = "";
+      stopSpecialAudios();
+      playBgAudio();
+      appEl.style.display = 'block';
+      appEl.style.opacity = '1';
+      
+      roomBgEl.style.backgroundImage = `url('img/Gemini_Generated_Image_a0ukjta0ukjta0uk.jpg')`;
+      roomBgEl.style.opacity = '0.3';
+
+      appEl.innerHTML = `
+        <h1 class="title">LA PORTA DELLA LIBERTÀ</h1>
+        <div class="subtitle">Copia sul tastierino le 7 lettere memorizzate!</div>
+
+        ${errorMessage ? `<div class="error-banner">${errorMessage}</div>` : ''}
+
+        ${generateKeysBarHTML()}
+
+        <div class="keypad-display" id="keypadDisplay">_______</div>
+
+        <div class="keypad-grid">
+          <button class="keypad-btn" onclick="pressKey('A')">A</button>
+          <button class="keypad-btn" onclick="pressKey('B')">B</button>
+          <button class="keypad-btn" onclick="pressKey('C')">C</button>
+          <button class="keypad-btn" onclick="pressKey('D')">D</button>
+          <button class="keypad-btn" onclick="pressKey('E')">E</button>
+          <button class="keypad-btn clear" onclick="clearKeypad()">CANCELLA</button>
+          <button class="keypad-btn submit" onclick="submitCode()">SBLOCCA PORTONE</button>
+        </div>
+      `;
+    }
+
+    function pressKey(letter) {
+      if (enteredCode.length < 7) {
+        enteredCode += letter;
+        updateKeypadDisplay();
+      }
+    }
+
+    function clearKeypad() {
+      enteredCode = "";
+      updateKeypadDisplay();
+    }
+
+    function updateKeypadDisplay() {
+      const display = document.getElementById('keypadDisplay');
+      if (display) {
+        display.innerText = enteredCode.padEnd(7, '_');
+      }
+    }
+
+    function submitCode() {
+      isKeySubmitted = true;
+      wrongIndices = [];
+
+      escapeData.rooms.forEach((room, idx) => {
+        if (userChoices[idx] !== room.correct) {
+          wrongIndices.push(idx);
+        }
+      });
+
+      const correctSequence = escapeData.rooms.map(r => r.correct).join('');
+
+      if (wrongIndices.length === 0 && enteredCode === correctSequence) {
+        triggerDoorAnimation(() => {
+          renderWinScreen();
+        });
+      } else {
+        fixingMode = true;
+        appEl.style.animation = "shake 0.4s";
+        setTimeout(() => appEl.style.animation = "", 400);
+
+        if (wrongIndices.length > 0) {
+          renderFinalDoor("⚠️ Errore! Le risposte errate sono evidenziate in rosso in alto! Clicca sulla casella rossa per correggerla.");
+        } else {
+          renderFinalDoor("⚠️ Il codice inserito non corrisponde alle 7 lettere memorizzate! Ricontrolla e digita di nuovo.");
+        }
+      }
+    }
+
+    /* SCHERMATA FINALE: SENZA SCRITTE + AVVIO AUTOMATICO AUDIO 3 */
+    function renderWinScreen() {
+      roomBgEl.style.backgroundImage = `url('img/uscita.jpg')`;
+      roomBgEl.style.opacity = '1';
+
+      appEl.classList.add('clean-mode');
+      appEl.style.display = 'block';
+      appEl.style.opacity = '1';
+      appEl.innerHTML = '';
+
+      playAudioLocal(audio3);
+    }
+
+    function triggerDoorAnimation(callback) {
+      doorOverlay.classList.add('door-active');
+      setTimeout(() => {
+        if (callback) callback();
+        setTimeout(() => {
+          doorOverlay.classList.remove('door-active');
+        }, 300);
+      }, 1000);
+    }
+
+    /* EFFETTO TORCIA */
+    document.addEventListener('mousemove', (e) => {
+      document.documentElement.style.setProperty('--mouse-x', e.clientX + 'px');
+      document.documentElement.style.setProperty('--mouse-y', e.clientY + 'px');
+    });
+
+    const tryPlayAudio1 = () => {
+      if (audio1 && audio1.paused) {
+        audio1.play().catch(() => {});
+      }
+    };
+
+    document.addEventListener('click', tryPlayAudio1, { once: true });
+
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = `
+      @keyframes shake {
+        0% { transform: translate(2px, 2px); }
+        20% { transform: translate(-3px, 0px); }
+        40% { transform: translate(3px, -2px); }
+        60% { transform: translate(-2px, 2px); }
+        100% { transform: translate(0, 0); }
+      }
+    `;
+    document.head.appendChild(styleSheet);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderIntro();
+      tryPlayAudio1();
+    });
+  </script>
+</body>
+</html>
